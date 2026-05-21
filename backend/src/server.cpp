@@ -16,7 +16,9 @@
 static const std::string kCorsHeaders =
     "Access-Control-Allow-Origin: *\r\n"
     "Access-Control-Allow-Methods: GET, POST, DELETE, OPTIONS\r\n"
-    "Access-Control-Allow-Headers: Content-Type, Authorization\r\n";
+    "Access-Control-Allow-Headers: Content-Type, Authorization\r\n"
+    "Cache-Control: no-store, no-cache, must-revalidate\r\n"
+    "Pragma: no-cache\r\n";
 
 HttpResponse HttpResponse::json(const std::string& body) {
     HttpResponse r;
