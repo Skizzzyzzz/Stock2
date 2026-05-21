@@ -1,3 +1,0 @@
-D:/New folder (2)/Stock2/backend/build/CMakeFiles/StockAnalyzer.dir
-D:/New folder (2)/Stock2/backend/build/CMakeFiles/ALL_BUILD.dir
-D:/New folder (2)/Stock2/backend/build/CMakeFiles/ZERO_CHECK.dir
