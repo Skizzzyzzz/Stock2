@@ -7,6 +7,7 @@
 2. Requirements
 3. How to build
 4. How to start
+5. Troubleshooting and known issues 
 ---
 
 ### 1. Structure
