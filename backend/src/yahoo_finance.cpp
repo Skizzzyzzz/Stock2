@@ -185,7 +185,19 @@ Stock YahooFinanceClient::parseResult(const std::string& obj) {
     s.price      = json::extractDouble(obj, "regularMarketPrice");
     s.change_pct = json::extractDouble(obj, "regularMarketChangePercent");
     s.volume     = static_cast<uint64_t>(json::extractInt(obj, "regularMarketVolume"));
-    s.market_cap = json::extractDouble(obj, "marketCap");
+
+    // marketCap is a large integer in Yahoo's response — extractInt is more reliable
+    long long mc = json::extractInt(obj, "marketCap");
+    if (mc > 0) {
+        s.market_cap = static_cast<double>(mc);
+    } else {
+        // Fallback: shares outstanding × current price
+        long long shares = json::extractInt(obj, "sharesOutstanding");
+        s.market_cap = (shares > 0 && s.price > 0.0)
+                       ? static_cast<double>(shares) * s.price
+                       : 0.0;
+    }
+
     s.last_updated = static_cast<uint64_t>(std::time(nullptr));
     s.signal     = Stock::computeSignal(s.change_pct);
     return s;
