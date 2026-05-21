@@ -20,11 +20,11 @@ User::User(const UserRecord& r)
 UserRecord User::toRecord() const {
     UserRecord r{};
     r.id = id;
-    std::strncpy(r.username,      username.c_str(),      sizeof(r.username)      - 1);
-    std::strncpy(r.email,         email.c_str(),         sizeof(r.email)         - 1);
-    std::strncpy(r.password_hash, password_hash.c_str(), sizeof(r.password_hash) - 1);
-    std::strncpy(r.salt,          salt.c_str(),          sizeof(r.salt)          - 1);
-    std::strncpy(r.token,         token.c_str(),         sizeof(r.token)         - 1);
+    std::snprintf(r.username,      sizeof(r.username),      "%s", username.c_str());
+    std::snprintf(r.email,         sizeof(r.email),         "%s", email.c_str());
+    std::snprintf(r.password_hash, sizeof(r.password_hash), "%s", password_hash.c_str());
+    std::snprintf(r.salt,          sizeof(r.salt),          "%s", salt.c_str());
+    std::snprintf(r.token,         sizeof(r.token),         "%s", token.c_str());
     r.created_at = created_at;
     r.active     = active ? 1 : 0;
     return r;

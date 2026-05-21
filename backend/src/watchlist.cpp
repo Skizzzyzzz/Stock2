@@ -20,8 +20,8 @@ WatchlistRecord WatchlistEntry::toRecord() const {
     WatchlistRecord r{};
     r.id      = id;
     r.user_id = user_id;
-    std::strncpy(r.symbol, symbol.c_str(), sizeof(r.symbol) - 1);
-    std::strncpy(r.notes,  notes.c_str(),  sizeof(r.notes)  - 1);
+    std::snprintf(r.symbol, sizeof(r.symbol), "%s", symbol.c_str());
+    std::snprintf(r.notes,  sizeof(r.notes),  "%s", notes.c_str());
     r.added_at = added_at;
     r.active   = active ? 1 : 0;
     return r;

@@ -14,7 +14,7 @@ cmake --version
 
 ### 2. A C++ compiler — pick one
 
-**Option A: Visual Studio 2019 or 2022 (recommended)**  
+**Option A: Visual Studio (recommended)**  
 Download from https://visualstudio.microsoft.com/  
 During install, check **"Desktop development with C++"**.  
 You do not need the full IDE — the Build Tools alone are enough:  
@@ -40,11 +40,20 @@ cd path\to\stock2\backend
 ```
 
 ### With Visual Studio
+CMake will auto-detect your installed version — no need to specify `-G`:
 ```
-cmake -B build -G "Visual Studio 17 2022"
+rmdir /s /q build
+cmake -B build
 cmake --build build --config Release
 ```
 The executable will be at `build\Release\StockAnalyzer.exe`.
+
+If you want to be explicit, replace `cmake -B build` with the line matching your version:
+```
+cmake -B build -G "Visual Studio 18 2026"   # VS 2026
+cmake -B build -G "Visual Studio 17 2022"   # VS 2022
+cmake -B build -G "Visual Studio 16 2019"   # VS 2019
+```
 
 ### With MinGW
 ```

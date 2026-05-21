@@ -21,13 +21,13 @@ Stock::Stock(const StockRecord& r)
 
 StockRecord Stock::toRecord() const {
     StockRecord r{};
-    std::strncpy(r.symbol, symbol.c_str(), sizeof(r.symbol) - 1);
-    std::strncpy(r.name,   name.c_str(),   sizeof(r.name)   - 1);
+    std::snprintf(r.symbol, sizeof(r.symbol), "%s", symbol.c_str());
+    std::snprintf(r.name,   sizeof(r.name),   "%s", name.c_str());
     r.price        = price;
     r.change_pct   = change_pct;
     r.volume       = volume;
     r.market_cap   = market_cap;
-    std::strncpy(r.signal, signal.c_str(), sizeof(r.signal) - 1);
+    std::snprintf(r.signal, sizeof(r.signal), "%s", signal.c_str());
     r.last_updated = last_updated;
     return r;
 }
