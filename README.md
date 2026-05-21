@@ -110,9 +110,9 @@ It will open the Login page in Browser
 **How to stop**
 In 1st PowerShell "Ctrl + C", and just close the window in browser
 
-> **Note:** The server creates a backend `backend\data` folder automatically on first run
-> This is where `users.bin` and `stocks.bin` are stored
-> Do not delete this folder while the server is running
+> **Note:** The server creates a `backend/data` folder automatically on first run.
+> This is where `users.bin` and `stocks.bin` are stored.
+> Do not delete this folder while the server is running.
 
 ---
 
