@@ -84,10 +84,6 @@ async function updateStockDashboard() {
                         <span class="label">Volume:</span>
                         <span class="value">${formatNumber(stock.volume)}</span>
                     </div>
-                    <div class="detail-item">
-                        <span class="label">Market Cap:</span>
-                        <span class="value">${formatMarketCap(stock.marketCap)}</span>
-                    </div>
                 </div>
                 <div class="stock-signal ${signalClass}">
                     ${signalEmoji} <strong>${stock.signal}</strong>
@@ -162,10 +158,6 @@ async function searchStock() {
                     <div class="detail-item">
                         <span class="label">Volume:</span>
                         <span class="value">${formatNumber(stock.volume)}</span>
-                    </div>
-                    <div class="detail-item">
-                        <span class="label">Market Cap:</span>
-                        <span class="value">${formatMarketCap(stock.marketCap)}</span>
                     </div>
                 </div>
                 <div class="stock-signal ${signalClass}">

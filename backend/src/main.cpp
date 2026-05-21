@@ -36,6 +36,7 @@
 #include <string>
 #include <vector>
 #include <ctime>
+#include <mutex>
 
 // ---- Default symbols to track -----------------------------------------
 
@@ -109,17 +110,35 @@ int main() {
 
     HttpServer server(8081);
 
+    // In-memory cache: avoid hitting Yahoo on every dashboard refresh
+    static std::vector<Stock> cachedStocks;
+    static std::time_t        cacheTime = 0;
+    static std::mutex         cacheMutex;
+    static const int          CACHE_TTL = 60; // seconds
+
     // ----------------------------------------------------------------
     // GET /api/stocks
     // ----------------------------------------------------------------
     server.addRoute("GET", "/api/stocks",
         [&](const HttpRequest&) -> HttpResponse {
-            auto stocks = yahoo.fetchQuotes(kDefaultSymbols);
+            std::vector<Stock> stocks;
+            {
+                std::lock_guard<std::mutex> lock(cacheMutex);
+                if (!cachedStocks.empty() &&
+                    std::difftime(std::time(nullptr), cacheTime) < CACHE_TTL) {
+                    stocks = cachedStocks; // serve from memory cache
+                }
+            }
             if (stocks.empty()) {
-                // Serve cached data if Yahoo is unreachable
-                stocks = stockDb.getAll();
-            } else {
-                for (auto& s : stocks) stockDb.upsert(s);
+                stocks = yahoo.fetchQuotes(kDefaultSymbols);
+                if (stocks.empty()) {
+                    stocks = stockDb.getAll(); // last resort: binary cache
+                } else {
+                    for (auto& s : stocks) stockDb.upsert(s);
+                    std::lock_guard<std::mutex> lock(cacheMutex);
+                    cachedStocks = stocks;
+                    cacheTime    = std::time(nullptr);
+                }
             }
             std::vector<std::string> items;
             items.reserve(stocks.size());
