@@ -1,0 +1,10 @@
+^D:\NEW FOLDER (2)\STOCK2\BACKEND\BUILD\CMAKEFILES\57E1D83BE7B1FD16121529DB6179B9C9\GENERATE.STAMP.RULE
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SD:/New folder (2)/stock2/backend" "-BD:/New folder (2)/Stock2/backend/build" --check-stamp-list CMakeFiles/generate.stamp.list --vs-solution-file "D:/New folder (2)/Stock2/backend/build/StockAnalyzer.slnx"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd

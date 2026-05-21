@@ -1,0 +1,10 @@
+^D:\NEW FOLDER (2)\STOCK2\BACKEND\CMAKELISTS.TXT
+setlocal
+"C:\Program Files\CMake\bin\cmake.exe" "-SD:/New folder (2)/stock2/backend" "-BD:/New folder (2)/Stock2/backend/build" --check-stamp-file "D:/New folder (2)/Stock2/backend/build/CMakeFiles/generate.stamp"
+if %errorlevel% neq 0 goto :cmEnd
+:cmEnd
+endlocal & call :cmErrorLevel %errorlevel% & goto :cmDone
+:cmErrorLevel
+exit /b %1
+:cmDone
+if %errorlevel% neq 0 goto :VCEnd
