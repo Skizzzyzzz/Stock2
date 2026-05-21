@@ -53,7 +53,7 @@ static std::string stockToJson(const Stock& s) {
         json::makeNumber("price",     s.price),
         json::makeNumber("change",    s.change_pct),
         json::makeNumber("volume",    static_cast<long long>(s.volume)),
-        json::makeNumber("marketCap", s.market_cap),
+        json::makeNumber("marketCap", static_cast<long long>(s.market_cap)),
         json::makeString("signal",    s.signal)
     });
 }

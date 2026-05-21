@@ -40,7 +40,7 @@ async function updateStockDashboard() {
         container.innerHTML = '';
         
         // Calling the C++ route we defined in main.cpp
-        const response = await fetch(`${API_URL}/stocks`);
+        const response = await fetch(`${API_URL}/stocks`, { cache: 'no-store' });
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -130,7 +130,7 @@ async function searchStock() {
     try {
         resultContainer.innerHTML = '<p>Searching...</p>';
         
-        const response = await fetch(`${API_URL}/stock/${symbol}`);
+        const response = await fetch(`${API_URL}/stock/${symbol}`, { cache: 'no-store' });
         
         if (!response.ok) {
             throw new Error('Stock not found');
