@@ -45,6 +45,12 @@ YahooFinanceClient::YahooFinanceClient() {
         WINHTTP_NO_PROXY_NAME,
         WINHTTP_NO_PROXY_BYPASS,
         0);
+    if (session_) {
+        DWORD timeout = 15000; // 15 seconds
+        WinHttpSetOption(session_, WINHTTP_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(timeout));
+        WinHttpSetOption(session_, WINHTTP_OPTION_SEND_TIMEOUT,    &timeout, sizeof(timeout));
+        WinHttpSetOption(session_, WINHTTP_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(timeout));
+    }
 }
 
 YahooFinanceClient::~YahooFinanceClient() {
