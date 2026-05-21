@@ -1,10 +1,7 @@
 #include "user.h"
 #include <fstream>
 #include <algorithm>
-#include <cstring>
 #include <stdexcept>
-
-// ---- User ---------------------------------------------------------------
 
 User::User(const UserRecord& r)
     : id(r.id)
@@ -29,8 +26,6 @@ UserRecord User::toRecord() const {
     r.active     = active ? 1 : 0;
     return r;
 }
-
-// ---- UserDatabase -------------------------------------------------------
 
 UserDatabase::UserDatabase(const std::string& filepath)
     : filepath_(filepath)
@@ -105,8 +100,6 @@ bool UserDatabase::removeUser(const std::string& username) {
     return false;
 }
 
-// ---- Filtering ----------------------------------------------------------
-
 std::vector<User> UserDatabase::filterByEmail(const std::string& domain) const {
     std::vector<User> out;
     for (auto& u : loadAll())
@@ -127,8 +120,6 @@ std::vector<User> UserDatabase::filterByCreatedAfter(uint64_t ts) const {
     return out;
 }
 
-// ---- Sorting ------------------------------------------------------------
-
 std::vector<User> UserDatabase::sortByUsername() const {
     auto v = filterActive();
     std::sort(v.begin(), v.end(),
@@ -142,8 +133,6 @@ std::vector<User> UserDatabase::sortByCreatedAt() const {
               [](const User& a, const User& b){ return a.created_at < b.created_at; });
     return v;
 }
-
-// ---- Summary ------------------------------------------------------------
 
 size_t UserDatabase::countActive() const {
     size_t n = 0;

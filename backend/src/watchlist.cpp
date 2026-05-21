@@ -1,11 +1,8 @@
 #include "watchlist.h"
 #include <fstream>
 #include <algorithm>
-#include <cstring>
 #include <stdexcept>
 #include <cctype>
-
-// ---- WatchlistEntry -----------------------------------------------------
 
 WatchlistEntry::WatchlistEntry(const WatchlistRecord& r)
     : id(r.id)
@@ -26,8 +23,6 @@ WatchlistRecord WatchlistEntry::toRecord() const {
     r.active   = active ? 1 : 0;
     return r;
 }
-
-// ---- WatchlistDatabase --------------------------------------------------
 
 WatchlistDatabase::WatchlistDatabase(const std::string& filepath)
     : filepath_(filepath)
@@ -102,8 +97,6 @@ bool WatchlistDatabase::exists(uint32_t user_id, const std::string& symbol) cons
     return false;
 }
 
-// ---- Filtering ----------------------------------------------------------
-
 std::vector<WatchlistEntry>
 WatchlistDatabase::filterBySymbol(const std::string& symbol) const {
     std::vector<WatchlistEntry> out;
@@ -120,8 +113,6 @@ WatchlistDatabase::filterByAddedAfter(uint64_t ts) const {
         if (e.active && e.added_at >= ts) out.push_back(e);
     return out;
 }
-
-// ---- Sorting ------------------------------------------------------------
 
 std::vector<WatchlistEntry>
 WatchlistDatabase::sortByAddedAt(uint32_t user_id, bool ascending) const {
@@ -142,8 +133,6 @@ WatchlistDatabase::sortBySymbol(uint32_t user_id) const {
         });
     return v;
 }
-
-// ---- Summary ------------------------------------------------------------
 
 size_t WatchlistDatabase::countByUser(uint32_t user_id) const {
     size_t n = 0;

@@ -1,24 +1,3 @@
-/**
- * Stock Analyzer — C++ Backend
- * Platform: Windows (WinSock2, WinHTTP)
- *
- * Starts an HTTP server on port 8081.
- * Serves the following API endpoints consumed by the HTML/JS frontend:
- *
- *   GET  /api/stocks          — fetch live quotes for default watchlist
- *   GET  /api/stock/:symbol   — fetch a single live quote
- *   POST /api/auth/login      — authenticate user, return token
- *   POST /api/auth/register   — register new user, return token
- *   GET  /api/watchlist       — get current user's watchlist (requires token)
- *   POST /api/watchlist       — add symbol to watchlist
- *   DELETE /api/watchlist/:sym — remove symbol from watchlist
- *
- * Users are persisted in data/users.bin (binary records).
- * Stocks are cached in data/stocks.bin (binary records).
- * Watchlist is persisted in data/watchlist.bin (binary records).
- */
-
-// Windows headers must come before any standard library that pulls in winsock.h
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -38,44 +17,35 @@
 #include <ctime>
 #include <mutex>
 
-// ---- Default symbols to track -----------------------------------------
-
 static const std::vector<std::string> kDefaultSymbols = {
     "AAPL", "MSFT", "GOOGL", "AMZN", "META",
     "TSLA", "NVDA", "JPM",   "V",    "JNJ"
 };
 
-// ---- JSON helper for a single Stock ------------------------------------
-
 static std::string stockToJson(const Stock& s) {
     return json::makeObject({
-        json::makeString("symbol",    s.symbol),
-        json::makeString("name",      s.name),
-        json::makeNumber("price",     s.price),
-        json::makeNumber("change",    s.change_pct),
-        json::makeNumber("volume",    static_cast<long long>(s.volume)),
-        json::makeNumber("marketCap", static_cast<long long>(s.market_cap)),
-        json::makeString("signal",    s.signal)
+        json::makeString("symbol", s.symbol),
+        json::makeString("name",   s.name),
+        json::makeNumber("price",  s.price),
+        json::makeNumber("change", s.change_pct),
+        json::makeNumber("volume", static_cast<long long>(s.volume)),
+        json::makeString("signal", s.signal)
     });
 }
 
-// ---- JSON helper for a WatchlistEntry + optional live price ----------
-
 static std::string watchlistEntryToJson(const WatchlistEntry& e, const Stock* s) {
     std::vector<std::string> fields = {
-        json::makeString ("symbol",   e.symbol),
-        json::makeString ("notes",    e.notes),
-        json::makeNumber ("addedAt",  static_cast<long long>(e.added_at))
+        json::makeString("symbol",  e.symbol),
+        json::makeString("notes",   e.notes),
+        json::makeNumber("addedAt", static_cast<long long>(e.added_at))
     };
     if (s) {
-        fields.push_back(json::makeNumber("price",     s->price));
-        fields.push_back(json::makeNumber("change",    s->change_pct));
-        fields.push_back(json::makeString("signal",    s->signal));
+        fields.push_back(json::makeNumber("price",  s->price));
+        fields.push_back(json::makeNumber("change", s->change_pct));
+        fields.push_back(json::makeString("signal", s->signal));
     }
     return json::makeObject(fields);
 }
-
-// ---- Token extraction from Authorization header -----------------------
 
 static std::string tokenFromRequest(const HttpRequest& req) {
     auto it = req.headers.find("authorization");
@@ -86,17 +56,13 @@ static std::string tokenFromRequest(const HttpRequest& req) {
     return v;
 }
 
-// ---- main --------------------------------------------------------------
-
 int main() {
-    // Initialise WinSock2
     WSADATA wsaData;
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         std::cerr << "WSAStartup failed.\n";
         return 1;
     }
 
-    // Ensure data directory exists
     CreateDirectoryA("data", nullptr);
 
     UserDatabase      userDb     ("data/users.bin");
@@ -110,15 +76,11 @@ int main() {
 
     HttpServer server(8081);
 
-    // In-memory cache: avoid hitting Yahoo on every dashboard refresh
     static std::vector<Stock> cachedStocks;
     static std::time_t        cacheTime = 0;
     static std::mutex         cacheMutex;
-    static const int          CACHE_TTL = 60; // seconds
+    static const int          CACHE_TTL = 60;
 
-    // ----------------------------------------------------------------
-    // GET /api/stocks
-    // ----------------------------------------------------------------
     server.addRoute("GET", "/api/stocks",
         [&](const HttpRequest&) -> HttpResponse {
             std::vector<Stock> stocks;
@@ -126,13 +88,13 @@ int main() {
                 std::lock_guard<std::mutex> lock(cacheMutex);
                 if (!cachedStocks.empty() &&
                     std::difftime(std::time(nullptr), cacheTime) < CACHE_TTL) {
-                    stocks = cachedStocks; // serve from memory cache
+                    stocks = cachedStocks;
                 }
             }
             if (stocks.empty()) {
                 stocks = yahoo.fetchQuotes(kDefaultSymbols);
                 if (stocks.empty()) {
-                    stocks = stockDb.getAll(); // last resort: binary cache
+                    stocks = stockDb.getAll();
                 } else {
                     for (auto& s : stocks) stockDb.upsert(s);
                     std::lock_guard<std::mutex> lock(cacheMutex);
@@ -146,9 +108,6 @@ int main() {
             return HttpResponse::json(json::makeArray(items));
         });
 
-    // ----------------------------------------------------------------
-    // GET /api/stock/* — prefix match captures ":symbol"
-    // ----------------------------------------------------------------
     server.addRoute("GET", "/api/stock/",
         [&](const HttpRequest& req) -> HttpResponse {
             std::string symbol = req.path.size() > 11
@@ -158,7 +117,6 @@ int main() {
 
             Stock s = yahoo.fetchQuote(symbol);
             if (s.symbol.empty()) {
-                // Try cache
                 if (!stockDb.findBySymbol(symbol, s))
                     return HttpResponse::notFound("Symbol not found: " + symbol);
             } else {
@@ -167,9 +125,6 @@ int main() {
             return HttpResponse::json(stockToJson(s));
         });
 
-    // ----------------------------------------------------------------
-    // POST /api/auth/login
-    // ----------------------------------------------------------------
     server.addRoute("POST", "/api/auth/login",
         [&](const HttpRequest& req) -> HttpResponse {
             std::string username = json::extractString(req.body, "username");
@@ -205,9 +160,6 @@ int main() {
             }));
         });
 
-    // ----------------------------------------------------------------
-    // POST /api/auth/register
-    // ----------------------------------------------------------------
     server.addRoute("POST", "/api/auth/register",
         [&](const HttpRequest& req) -> HttpResponse {
             std::string username = json::extractString(req.body, "username");
@@ -260,9 +212,6 @@ int main() {
             }));
         });
 
-    // ----------------------------------------------------------------
-    // GET /api/watchlist — returns watchlist for authenticated user
-    // ----------------------------------------------------------------
     server.addRoute("GET", "/api/watchlist",
         [&](const HttpRequest& req) -> HttpResponse {
             User user;
@@ -283,9 +232,6 @@ int main() {
             return HttpResponse::json(json::makeArray(items));
         });
 
-    // ----------------------------------------------------------------
-    // POST /api/watchlist — add a symbol
-    // ----------------------------------------------------------------
     server.addRoute("POST", "/api/watchlist",
         [&](const HttpRequest& req) -> HttpResponse {
             User user;
@@ -319,9 +265,6 @@ int main() {
             }));
         });
 
-    // ----------------------------------------------------------------
-    // DELETE /api/watchlist/ — remove a symbol
-    // ----------------------------------------------------------------
     server.addRoute("DELETE", "/api/watchlist/",
         [&](const HttpRequest& req) -> HttpResponse {
             User user;
@@ -344,7 +287,7 @@ int main() {
         });
 
     std::cout << "[Main] Starting server on port 8081...\n";
-    server.start(); // blocks
+    server.start();
 
     WSACleanup();
     return 0;

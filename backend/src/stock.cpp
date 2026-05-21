@@ -1,12 +1,8 @@
 #include "stock.h"
 #include <fstream>
 #include <algorithm>
-#include <cstring>
 #include <stdexcept>
 #include <cctype>
-#include <numeric>
-
-// ---- Stock --------------------------------------------------------------
 
 Stock::Stock(const StockRecord& r)
     : symbol(r.symbol)
@@ -39,8 +35,6 @@ std::string Stock::computeSignal(double change_pct) {
     if (change_pct <= -1.0) return "SELL";
     return "HOLD";
 }
-
-// ---- StockDatabase -------------------------------------------------------
 
 StockDatabase::StockDatabase(const std::string& filepath)
     : filepath_(filepath)
@@ -99,8 +93,6 @@ bool StockDatabase::removeBySymbol(const std::string& symbol) {
     return true;
 }
 
-// ---- Filtering ----------------------------------------------------------
-
 std::vector<Stock> StockDatabase::filterBySignal(const std::string& signal) const {
     std::vector<Stock> out;
     for (auto& s : loadAll()) if (s.signal == signal) out.push_back(s);
@@ -125,8 +117,6 @@ std::vector<Stock> StockDatabase::filterByMinVolume(uint64_t minVolume) const {
     return out;
 }
 
-// ---- Sorting ------------------------------------------------------------
-
 std::vector<Stock> StockDatabase::sortByPrice(bool ascending) const {
     auto v = loadAll();
     std::sort(v.begin(), v.end(), [ascending](const Stock& a, const Stock& b){
@@ -150,8 +140,6 @@ std::vector<Stock> StockDatabase::sortByVolume(bool ascending) const {
     });
     return v;
 }
-
-// ---- Summary ------------------------------------------------------------
 
 size_t StockDatabase::countBySignal(const std::string& signal) const {
     size_t n = 0;

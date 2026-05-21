@@ -1,4 +1,3 @@
-// Platform: Windows (WinHTTP required)
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
 #include <winhttp.h>
@@ -10,13 +9,9 @@
 
 #include <string>
 #include <vector>
-#include <sstream>
 #include <iostream>
 #include <ctime>
-#include <algorithm>
 #include <cctype>
-
-// ---- Wide-string helpers -----------------------------------------------
 
 static std::wstring toWide(const std::string& s) {
     if (s.empty()) return {};
@@ -36,8 +31,6 @@ static std::string toNarrow(const wchar_t* w, int len) {
     return s;
 }
 
-// ---- YahooFinanceClient -------------------------------------------------
-
 YahooFinanceClient::YahooFinanceClient() {
     session_ = WinHttpOpen(
         L"Mozilla/5.0 StockAnalyzer/1.0",
@@ -46,7 +39,7 @@ YahooFinanceClient::YahooFinanceClient() {
         WINHTTP_NO_PROXY_BYPASS,
         0);
     if (session_) {
-        DWORD timeout = 15000; // 15 seconds
+        DWORD timeout = 15000;
         WinHttpSetOption(session_, WINHTTP_OPTION_CONNECT_TIMEOUT, &timeout, sizeof(timeout));
         WinHttpSetOption(session_, WINHTTP_OPTION_SEND_TIMEOUT,    &timeout, sizeof(timeout));
         WinHttpSetOption(session_, WINHTTP_OPTION_RECEIVE_TIMEOUT, &timeout, sizeof(timeout));
@@ -57,7 +50,6 @@ YahooFinanceClient::~YahooFinanceClient() {
     if (session_) WinHttpCloseHandle(session_);
 }
 
-// Generic HTTPS GET; returns response body or "" on failure.
 std::string YahooFinanceClient::httpsGet(const std::wstring& host,
                                           const std::wstring& path,
                                           const std::wstring& extraHeaders) const {
@@ -74,7 +66,6 @@ std::string YahooFinanceClient::httpsGet(const std::wstring& host,
         WINHTTP_FLAG_SECURE);
     if (!hReq) { WinHttpCloseHandle(hConn); return ""; }
 
-    // Common browser-like headers
     std::wstring headers =
         L"Accept: application/json, text/plain, */*\r\n"
         L"Accept-Language: en-US,en;q=0.9\r\n";
@@ -91,7 +82,6 @@ std::string YahooFinanceClient::httpsGet(const std::wstring& host,
         return "";
     }
 
-    // Collect response body
     std::string body;
     DWORD bytesAvail = 0;
     while (WinHttpQueryDataAvailable(hReq, &bytesAvail) && bytesAvail > 0) {
@@ -101,16 +91,8 @@ std::string YahooFinanceClient::httpsGet(const std::wstring& host,
         body.append(chunk, 0, bytesRead);
     }
 
-    // Extract Set-Cookie from response headers if we haven't got one yet
     if (cookie_.empty()) {
         DWORD size = 0;
-        WinHttpQueryHeaders(hReq,
-            WINHTTP_QUERY_SET_COOKIE | WINHTTP_QUERY_FLAG_REQUEST_HEADERS,
-            WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &size,
-            WINHTTP_NO_HEADER_INDEX);
-        // The above call fails (it's a response header not request),
-        // use WINHTTP_QUERY_RAW_HEADERS_CRLF to grab all response headers.
-        size = 0;
         WinHttpQueryHeaders(hReq, WINHTTP_QUERY_RAW_HEADERS_CRLF,
             WINHTTP_HEADER_NAME_BY_INDEX, nullptr, &size, WINHTTP_NO_HEADER_INDEX);
         if (size > 0) {
@@ -120,7 +102,6 @@ std::string YahooFinanceClient::httpsGet(const std::wstring& host,
                 WINHTTP_NO_HEADER_INDEX);
             std::string narrow = toNarrow(rawHdrs.c_str(),
                                           static_cast<int>(rawHdrs.size()));
-            // Find Set-Cookie: value
             size_t pos = narrow.find("Set-Cookie:");
             if (pos == std::string::npos)
                 pos = narrow.find("set-cookie:");
@@ -129,7 +110,6 @@ std::string YahooFinanceClient::httpsGet(const std::wstring& host,
                 while (pos < narrow.size() && narrow[pos] == ' ') ++pos;
                 size_t end = narrow.find("\r\n", pos);
                 if (end == std::string::npos) end = narrow.size();
-                // Take only name=value (before the first semicolon)
                 size_t semi = narrow.find(';', pos);
                 if (semi < end) end = semi;
                 const_cast<YahooFinanceClient*>(this)->cookie_ =
@@ -146,14 +126,11 @@ std::string YahooFinanceClient::httpsGet(const std::wstring& host,
 bool YahooFinanceClient::init() {
     if (!session_) return false;
 
-    // Step 1: Hit the finance consent/cookie page to obtain a session cookie
     (void)httpsGet(L"fc.yahoo.com", L"/", L"");
 
-    // If we still have no cookie from fc.yahoo.com, try finance.yahoo.com
     if (cookie_.empty())
         (void)httpsGet(L"finance.yahoo.com", L"/", L"");
 
-    // Step 2: Fetch crumb using the cookie we obtained
     std::wstring cookieHeader;
     if (!cookie_.empty())
         cookieHeader = L"Cookie: " + toWide(cookie_) + L"\r\n";
@@ -164,22 +141,18 @@ bool YahooFinanceClient::init() {
         cookieHeader);
 
     crumb_ = crumbBody;
-    // Remove any surrounding whitespace/newlines
     while (!crumb_.empty() && (crumb_.back() == '\n' ||
                                 crumb_.back() == '\r' ||
                                 crumb_.back() == ' '))
         crumb_.pop_back();
 
     if (crumb_.empty()) {
-        std::cerr << "[Yahoo] Warning: could not obtain crumb; "
-                     "requests may fail.\n";
+        std::cerr << "[Yahoo] Warning: could not obtain crumb; requests may fail.\n";
         return false;
     }
     std::cout << "[Yahoo] Initialised. Crumb obtained.\n";
     return true;
 }
-
-// ---- Parsing -----------------------------------------------------------
 
 Stock YahooFinanceClient::parseResult(const std::string& obj) {
     Stock s;
@@ -192,23 +165,16 @@ Stock YahooFinanceClient::parseResult(const std::string& obj) {
     s.change_pct = json::extractDouble(obj, "regularMarketChangePercent");
     s.volume     = static_cast<uint64_t>(json::extractInt(obj, "regularMarketVolume"));
 
-    // Primary: sharesOutstanding × price (always present in Yahoo v7 quotes)
     long long shares = json::extractInt(obj, "sharesOutstanding");
     s.market_cap = (shares > 0 && s.price > 0.0)
                    ? static_cast<double>(shares) * s.price
                    : 0.0;
 
-    // Override with direct marketCap field if Yahoo provides it
     long long mc = json::extractInt(obj, "marketCap");
     if (mc > 0) s.market_cap = static_cast<double>(mc);
 
-    std::cout << "[Yahoo] " << s.symbol
-              << " price=" << s.price
-              << " shares=" << shares
-              << " marketCap=" << s.market_cap << "\n";
-
     s.last_updated = static_cast<uint64_t>(std::time(nullptr));
-    s.signal     = Stock::computeSignal(s.change_pct);
+    s.signal       = Stock::computeSignal(s.change_pct);
     return s;
 }
 
@@ -233,7 +199,6 @@ std::vector<Stock> YahooFinanceClient::fetchQuotes(
         const std::vector<std::string>& symbols) {
     if (symbols.empty()) return {};
 
-    // Build comma-separated list
     std::string syms;
     for (size_t i = 0; i < symbols.size(); ++i) {
         if (i) syms += ',';
@@ -251,7 +216,6 @@ std::vector<Stock> YahooFinanceClient::fetchQuotes(
                                 toWide(path), extraHeaders);
     if (body.empty()) return {};
 
-    // Extract the "result" array and iterate over each object
     std::string search = "\"result\":[";
     size_t pos = body.find(search);
     if (pos == std::string::npos) return {};
@@ -259,10 +223,8 @@ std::vector<Stock> YahooFinanceClient::fetchQuotes(
 
     std::vector<Stock> results;
     while (pos < body.size()) {
-        // Skip to next '{'
         pos = body.find('{', pos);
         if (pos == std::string::npos) break;
-        // Find matching '}'
         size_t start = pos;
         int depth = 0;
         while (pos < body.size()) {
@@ -277,11 +239,9 @@ std::vector<Stock> YahooFinanceClient::fetchQuotes(
             }
             ++pos;
         }
-        std::string obj = body.substr(start, pos - start);
-        Stock s = parseResult(obj);
+        Stock s = parseResult(body.substr(start, pos - start));
         if (!s.symbol.empty()) results.push_back(s);
 
-        // Stop at the closing ']'
         size_t next = body.find_first_not_of(" \t\r\n,", pos);
         if (next == std::string::npos || body[next] == ']') break;
     }

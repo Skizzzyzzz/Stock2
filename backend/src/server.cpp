@@ -1,4 +1,3 @@
-// Platform: Windows (WinSock2 required)
 #define WIN32_LEAN_AND_MEAN
 #include <winsock2.h>
 #include <ws2tcpip.h>
@@ -8,10 +7,7 @@
 #include <iostream>
 #include <sstream>
 #include <thread>
-#include <algorithm>
 #include <stdexcept>
-
-// ---- HttpResponse factory methods --------------------------------------
 
 static const std::string kCorsHeaders =
     "Access-Control-Allow-Origin: *\r\n"
@@ -60,8 +56,6 @@ HttpResponse HttpResponse::cors() {
     return r;
 }
 
-// ---- HttpServer --------------------------------------------------------
-
 HttpServer::HttpServer(uint16_t port) : port_(port) {}
 
 HttpServer::~HttpServer() {
@@ -78,24 +72,19 @@ const Route* HttpServer::findRoute(const std::string& method,
                                    const std::string& path) const {
     for (auto& r : routes_) {
         if (r.method == "OPTIONS" || r.method == method) {
-            // Wildcard prefix "*"
             if (r.pathPrefix == "*") return &r;
-            // Exact or prefix match
             if (path == r.pathPrefix ||
                 (r.pathPrefix.back() == '/' &&
                  path.size() >= r.pathPrefix.size() &&
-                 path.substr(0, r.pathPrefix.size()) == r.pathPrefix) ||
-                path == r.pathPrefix)
+                 path.substr(0, r.pathPrefix.size()) == r.pathPrefix))
                 return &r;
         }
     }
     return nullptr;
 }
 
-// Parse raw HTTP/1.x bytes into HttpRequest
 bool HttpServer::parseRequest(const std::string& raw, HttpRequest& req) {
     size_t pos = 0;
-    // Request line
     size_t eol = raw.find("\r\n", pos);
     if (eol == std::string::npos) return false;
     std::string requestLine = raw.substr(pos, eol - pos);
@@ -106,36 +95,31 @@ bool HttpServer::parseRequest(const std::string& raw, HttpRequest& req) {
     rl >> req.method >> req.path >> httpVer;
     if (req.method.empty() || req.path.empty()) return false;
 
-    // Split path and query string
     size_t qmark = req.path.find('?');
     if (qmark != std::string::npos) {
         req.query = req.path.substr(qmark + 1);
         req.path  = req.path.substr(0, qmark);
     }
 
-    // Headers
     size_t contentLength = 0;
     while (pos < raw.size()) {
         eol = raw.find("\r\n", pos);
         if (eol == std::string::npos) break;
-        if (eol == pos) { pos += 2; break; } // blank line = end of headers
+        if (eol == pos) { pos += 2; break; }
         std::string line = raw.substr(pos, eol - pos);
         pos = eol + 2;
         size_t colon = line.find(':');
         if (colon == std::string::npos) continue;
         std::string name  = line.substr(0, colon);
         std::string value = line.substr(colon + 1);
-        // Trim leading whitespace from value
         size_t vs = value.find_first_not_of(" \t");
         if (vs != std::string::npos) value = value.substr(vs);
-        // Lowercase header name for easy lookup
         for (char& c : name) c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
         req.headers[name] = value;
         if (name == "content-length") {
             try { contentLength = std::stoul(value); } catch (...) {}
         }
     }
-    // Body
     if (contentLength > 0 && pos < raw.size())
         req.body = raw.substr(pos, contentLength);
     return true;
@@ -164,12 +148,11 @@ std::string HttpServer::serialiseResponse(const HttpResponse& res) {
 }
 
 void HttpServer::handleClient(SOCKET sock) const {
-    // Read request (may need multiple recv calls)
     std::string raw;
     char buf[4096];
-    bool headersDone = false;
+    bool   headersDone  = false;
     size_t contentLength = 0;
-    size_t headerEnd = 0;
+    size_t headerEnd    = 0;
 
     while (true) {
         int n = recv(sock, buf, sizeof(buf) - 1, 0);
@@ -182,7 +165,6 @@ void HttpServer::handleClient(SOCKET sock) const {
             if (he != std::string::npos) {
                 headersDone = true;
                 headerEnd   = he + 4;
-                // Peek content-length
                 std::string lower = raw.substr(0, headerEnd);
                 for (char& c : lower) c = static_cast<char>(
                     std::tolower(static_cast<unsigned char>(c)));
@@ -207,7 +189,6 @@ void HttpServer::handleClient(SOCKET sock) const {
         return;
     }
 
-    // CORS preflight
     HttpResponse res;
     if (req.method == "OPTIONS") {
         res = HttpResponse::cors();
@@ -235,7 +216,6 @@ void HttpServer::start() {
     if (listenSocket_ == INVALID_SOCKET)
         throw std::runtime_error("socket() failed");
 
-    // Allow quick restart
     int opt = 1;
     setsockopt(listenSocket_, SOL_SOCKET, SO_REUSEADDR,
                reinterpret_cast<const char*>(&opt), sizeof(opt));
@@ -257,8 +237,6 @@ void HttpServer::start() {
     while (true) {
         SOCKET client = accept(listenSocket_, nullptr, nullptr);
         if (client == INVALID_SOCKET) continue;
-
-        // Detach a thread per connection
         std::thread([this, client]() {
             handleClient(client);
         }).detach();

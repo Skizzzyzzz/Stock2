@@ -2,50 +2,38 @@ const API_URL = 'http://localhost:8081/api';
 
 function formatNumber(num) {
     if (num >= 1e12) return (num / 1e12).toFixed(2) + 'T';
-    if (num >= 1e9) return (num / 1e9).toFixed(2) + 'B';
-    if (num >= 1e6) return (num / 1e6).toFixed(2) + 'M';
-    if (num >= 1e3) return (num / 1e3).toFixed(2) + 'K';
+    if (num >= 1e9)  return (num / 1e9).toFixed(2)  + 'B';
+    if (num >= 1e6)  return (num / 1e6).toFixed(2)  + 'M';
+    if (num >= 1e3)  return (num / 1e3).toFixed(2)  + 'K';
     return num.toFixed(2);
 }
 
-function formatMarketCap(marketCap) {
-    // Handle null, undefined, 0, or unreasonably small numbers
-    // Numbers like 3e-314 are basically 0 due to floating point errors
-    if (!marketCap || marketCap < 1e6) {  // Less than 1 million is invalid for market cap
-        return 'N/A';
-    }
-    return '$' + formatNumber(marketCap);
-}
-
 function getSignalClass(signal) {
-    if (signal.includes('BUY')) return 'buy';
+    if (signal.includes('BUY'))  return 'buy';
     if (signal.includes('SELL')) return 'sell';
     return 'hold';
 }
 
 function getSignalEmoji(signal) {
-    if (signal === 'STRONG BUY') return '🚀';
-    if (signal === 'BUY') return '📈';
+    if (signal === 'STRONG BUY')  return '🚀';
+    if (signal === 'BUY')         return '📈';
     if (signal === 'STRONG SELL') return '⚠️';
-    if (signal === 'SELL') return '📉';
+    if (signal === 'SELL')        return '📉';
     return '⏸️';
 }
 
 async function updateStockDashboard() {
-    const loading = document.getElementById('loading');
+    const loading   = document.getElementById('loading');
     const container = document.getElementById('stock-list');
-    
+
     try {
         loading.style.display = 'block';
-        container.innerHTML = '';
-        
-        // Calling the C++ route we defined in main.cpp
+        container.innerHTML   = '';
+
         const response = await fetch(`${API_URL}/stocks`, { cache: 'no-store' });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
+
+        if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+
         const data = await response.json();
         loading.style.display = 'none';
 
@@ -54,16 +42,14 @@ async function updateStockDashboard() {
             return;
         }
 
-        // Update statistics
         updateStatistics(data);
 
-        // Display stock cards
         data.forEach(stock => {
             const changeClass = stock.change >= 0 ? 'positive' : 'negative';
-            const changeSign = stock.change >= 0 ? '+' : '';
+            const changeSign  = stock.change >= 0 ? '+' : '';
             const signalClass = getSignalClass(stock.signal);
             const signalEmoji = getSignalEmoji(stock.signal);
-            
+
             const card = document.createElement('div');
             card.className = 'stock-card';
             card.innerHTML = `
@@ -91,54 +77,41 @@ async function updateStockDashboard() {
             `;
             container.appendChild(card);
         });
-        
-        // Update last update time
-        const now = new Date();
-        document.getElementById('last-update').textContent = now.toLocaleTimeString();
-        
+
+        document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+
     } catch (error) {
         loading.style.display = 'none';
         container.innerHTML = `<p class="error">Failed to fetch stocks: ${error.message}</p>`;
-        console.error("Failed to fetch stocks:", error);
     }
 }
 
 function updateStatistics(stocks) {
-    document.getElementById('total-stocks').textContent = stocks.length;
-    
-    const buySignals = stocks.filter(s => s.signal.includes('BUY')).length;
-    const sellSignals = stocks.filter(s => s.signal.includes('SELL')).length;
-    
-    document.getElementById('buy-signals').textContent = buySignals;
-    document.getElementById('sell-signals').textContent = sellSignals;
+    document.getElementById('total-stocks').textContent  = stocks.length;
+    document.getElementById('buy-signals').textContent   = stocks.filter(s => s.signal.includes('BUY')).length;
+    document.getElementById('sell-signals').textContent  = stocks.filter(s => s.signal.includes('SELL')).length;
 }
 
 async function searchStock() {
-    const searchInput = document.getElementById('search-input');
-    const symbol = searchInput.value.trim().toUpperCase();
+    const searchInput     = document.getElementById('search-input');
+    const symbol          = searchInput.value.trim().toUpperCase();
     const resultContainer = document.getElementById('search-result');
-    
-    if (!symbol) {
-        alert('Please enter a stock symbol');
-        return;
-    }
-    
+
+    if (!symbol) { alert('Please enter a stock symbol'); return; }
+
     try {
         resultContainer.innerHTML = '<p>Searching...</p>';
-        
+
         const response = await fetch(`${API_URL}/stock/${symbol}`, { cache: 'no-store' });
-        
-        if (!response.ok) {
-            throw new Error('Stock not found');
-        }
-        
-        const stock = await response.json();
-        
+
+        if (!response.ok) throw new Error('Stock not found');
+
+        const stock       = await response.json();
         const changeClass = stock.change >= 0 ? 'positive' : 'negative';
-        const changeSign = stock.change >= 0 ? '+' : '';
+        const changeSign  = stock.change >= 0 ? '+' : '';
         const signalClass = getSignalClass(stock.signal);
         const signalEmoji = getSignalEmoji(stock.signal);
-        
+
         resultContainer.innerHTML = `
             <h2>Search Result</h2>
             <div class="stock-card featured">
@@ -165,22 +138,16 @@ async function searchStock() {
                 </div>
             </div>
         `;
-        
     } catch (error) {
         resultContainer.innerHTML = `<p class="error">Error: ${error.message}</p>`;
     }
 }
 
-// Allow Enter key to trigger search
 document.addEventListener('DOMContentLoaded', () => {
-    const searchInput = document.getElementById('search-input');
-    searchInput.addEventListener('keypress', (e) => {
-        if (e.key === 'Enter') {
-            searchStock();
-        }
+    document.getElementById('search-input').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') searchStock();
     });
 });
 
-// Update data every 60 seconds
 setInterval(updateStockDashboard, 60000);
 updateStockDashboard();

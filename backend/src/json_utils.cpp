@@ -1,15 +1,11 @@
 #include "json_utils.h"
 #include <sstream>
 #include <iomanip>
-#include <algorithm>
 
 namespace json {
 
-// ---- Extraction helpers ------------------------------------------------
-
-static size_t skipWhitespace(const std::string& s, size_t pos) {
-    while (pos < s.size() && (s[pos] == ' ' || s[pos] == '\t' ||
-                               s[pos] == '\r' || s[pos] == '\n'))
+static size_t skipWS(const std::string& s, size_t pos) {
+    while (pos < s.size() && (s[pos]==' '||s[pos]=='\t'||s[pos]=='\r'||s[pos]=='\n'))
         ++pos;
     return pos;
 }
@@ -18,13 +14,11 @@ std::string extractString(const std::string& j, const std::string& key) {
     std::string search = "\"" + key + "\"";
     size_t pos = j.find(search);
     if (pos == std::string::npos) return "";
-    pos += search.size();
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + search.size());
     if (pos >= j.size() || j[pos] != ':') return "";
-    ++pos;
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + 1);
     if (pos >= j.size() || j[pos] != '"') return "";
-    ++pos; // skip opening quote
+    ++pos;
     std::string result;
     while (pos < j.size() && j[pos] != '"') {
         if (j[pos] == '\\' && pos + 1 < j.size()) {
@@ -50,61 +44,49 @@ double extractDouble(const std::string& j, const std::string& key) {
     std::string search = "\"" + key + "\"";
     size_t pos = j.find(search);
     if (pos == std::string::npos) return 0.0;
-    pos += search.size();
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + search.size());
     if (pos >= j.size() || j[pos] != ':') return 0.0;
-    ++pos;
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + 1);
     if (j.substr(pos, 4) == "null") return 0.0;
     size_t end = pos;
-    while (end < j.size() && (std::isdigit(static_cast<unsigned char>(j[end])) ||
-           j[end] == '.' || j[end] == '-' || j[end] == '+' ||
-           j[end] == 'e' || j[end] == 'E'))
+    while (end < j.size() && (std::isdigit((unsigned char)j[end]) ||
+           j[end]=='.'||j[end]=='-'||j[end]=='+'||j[end]=='e'||j[end]=='E'))
         ++end;
     if (end == pos) return 0.0;
-    try { return std::stod(j.substr(pos, end - pos)); }
-    catch (...) { return 0.0; }
+    try { return std::stod(j.substr(pos, end - pos)); } catch (...) { return 0.0; }
 }
 
 long long extractInt(const std::string& j, const std::string& key) {
     std::string search = "\"" + key + "\"";
     size_t pos = j.find(search);
     if (pos == std::string::npos) return 0;
-    pos += search.size();
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + search.size());
     if (pos >= j.size() || j[pos] != ':') return 0;
-    ++pos;
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + 1);
     if (j.substr(pos, 4) == "null") return 0;
     size_t end = pos;
-    if (j[end] == '-') ++end;
-    while (end < j.size() && std::isdigit(static_cast<unsigned char>(j[end])))
-        ++end;
+    if (end < j.size() && j[end] == '-') ++end;
+    while (end < j.size() && std::isdigit((unsigned char)j[end])) ++end;
     if (end == pos) return 0;
-    try { return std::stoll(j.substr(pos, end - pos)); }
-    catch (...) { return 0; }
+    try { return std::stoll(j.substr(pos, end - pos)); } catch (...) { return 0; }
 }
 
 std::string extractFirstObject(const std::string& j, const std::string& arrayKey) {
     std::string search = "\"" + arrayKey + "\"";
     size_t pos = j.find(search);
     if (pos == std::string::npos) return "";
-    pos += search.size();
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + search.size());
     if (pos >= j.size() || j[pos] != ':') return "";
-    ++pos;
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + 1);
     if (pos >= j.size() || j[pos] != '[') return "";
-    ++pos;
-    pos = skipWhitespace(j, pos);
+    pos = skipWS(j, pos + 1);
     if (pos >= j.size() || j[pos] != '{') return "";
-    // Scan for the matching closing brace
     size_t start = pos;
     int depth = 0;
     while (pos < j.size()) {
-        if (j[pos] == '{') ++depth;
+        if      (j[pos] == '{') ++depth;
         else if (j[pos] == '}') { --depth; if (depth == 0) { ++pos; break; } }
-        else if (j[pos] == '"') { // skip string to avoid false brace matches
+        else if (j[pos] == '"') {
             ++pos;
             while (pos < j.size() && j[pos] != '"') {
                 if (j[pos] == '\\') ++pos;
@@ -115,8 +97,6 @@ std::string extractFirstObject(const std::string& j, const std::string& arrayKey
     }
     return j.substr(start, pos - start);
 }
-
-// ---- Building helpers --------------------------------------------------
 
 std::string escapeString(const std::string& s) {
     std::string out;
@@ -129,13 +109,8 @@ std::string escapeString(const std::string& s) {
             case '\r': out += "\\r";  break;
             case '\t': out += "\\t";  break;
             default:
-                if (c < 0x20) {
-                    char buf[8];
-                    std::snprintf(buf, sizeof(buf), "\\u%04x", c);
-                    out += buf;
-                } else {
-                    out += static_cast<char>(c);
-                }
+                if (c < 0x20) { char b[8]; std::snprintf(b,sizeof(b),"\\u%04x",c); out+=b; }
+                else out += (char)c;
         }
     }
     return out;
@@ -162,22 +137,14 @@ std::string makeBool(const std::string& key, bool val) {
 
 std::string makeObject(const std::vector<std::string>& fields) {
     std::string out = "{";
-    for (size_t i = 0; i < fields.size(); ++i) {
-        if (i) out += ",";
-        out += fields[i];
-    }
-    out += "}";
-    return out;
+    for (size_t i = 0; i < fields.size(); ++i) { if (i) out += ","; out += fields[i]; }
+    return out + "}";
 }
 
 std::string makeArray(const std::vector<std::string>& items) {
     std::string out = "[";
-    for (size_t i = 0; i < items.size(); ++i) {
-        if (i) out += ",";
-        out += items[i];
-    }
-    out += "]";
-    return out;
+    for (size_t i = 0; i < items.size(); ++i) { if (i) out += ","; out += items[i]; }
+    return out + "]";
 }
 
-} // namespace json
+}
