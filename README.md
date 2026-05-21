@@ -1,110 +1,124 @@
 # Stock Analyzer
 ---
 
-## What you need to install
+### List of Content
 
-### 1. CMake
-Download and install from https://cmake.org/download/  
-Pick the Windows x64 installer. During install, choose **"Add CMake to system PATH"**.
-
-Verify it worked:
-```
-cmake --version
-```
-
-### 2. A C++ compiler — pick one
-
-**Option A: Visual Studio (recommended)**  
-Download from https://visualstudio.microsoft.com/  
-During install, check **"Desktop development with C++"**.  
-You do not need the full IDE — the Build Tools alone are enough:  
-https://visualstudio.microsoft.com/visual-cpp-build-tools/
-
-**Option B: MinGW-w64 (lighter)**  
-Download the MSYS2 installer from https://www.msys2.org/  
-After install, open the MSYS2 terminal and run:
-```
-pacman -S mingw-w64-ucrt-x86_64-gcc mingw-w64-ucrt-x86_64-cmake
-```
-Then add `C:\msys64\ucrt64\bin` to your Windows PATH.
-
+1. Structure
+2. Requirements
+3. How to build
+4. How to start
 ---
 
-## How to build
+### 1. Structure
 
-Open a **Developer Command Prompt** (Visual Studio) or a normal `cmd`/PowerShell if you used MinGW.
+#### Backend: C++ | Frontend: HTML/Css/js | API used: Yahoo Finance
 
-Navigate to the backend folder:
 ```
-cd path\to\stock2\backend
+StockAnalyzer/
+├── backend/
+│   ├── data/
+│   ├── include/
+│   │   ├── auth.h
+│   │   ├── json_utils.h
+│   │   ├── server.h
+│   │   ├── stock.h
+│   │   ├── user.h
+│   │   ├── watchlist.h
+│   │   └── yahoo_finance.h
+│   ├── src/
+│   │   ├── auth.cpp
+│   │   ├── json_utils.cpp
+│   │   ├── main.cpp
+│   │   ├── server.cpp
+│   │   ├── stock.cpp
+│   │   ├── user.cpp
+│   │   ├── watchlist.cpp
+│   │   └── yahoo_finance.cpp
+│   └── CMakeLists.txt
+├── frontend/
+│   ├── css/
+│   │   └── style.css
+│   ├── js/
+│   │   ├── app.js
+│   │   └── auth.js
+│   ├── index.html
+│   ├── login.html
+│   └── signup.html
+├── .gitignore
+└── readme.md
 ```
 
-### With Visual Studio
-CMake will auto-detect your installed version — no need to specify `-G`:
+### 2. Requirements
+
+1. **CMake** (avalible on https://cmake.org/download/)
+
+During install, choose "Add CMake to system PATH".
+
+To verify:
 ```
-rmdir /s /q build
+camake --version
+```
+
+2. **A C++ compiler** (Visual Studio avalible on https://visualstudio.microsoft.com/)
+
+During install, check "Desktop development with C++"
+
+### 3. How to build
+
+**In powershell**
+
+Navigate to backend:
+```
+cd path_to_project\stockanalyzer\backend
+```
+
+Building the whole thing:
+```
 cmake -B build
-cmake --build build --config Release
-```
-The executable will be at `build\Release\StockAnalyzer.exe`.
-
-If you want to be explicit, replace `cmake -B build` with the line matching your version:
-```
-cmake -B build -G "Visual Studio 18 2026"   # VS 2026
-cmake -B build -G "Visual Studio 17 2022"   # VS 2022
-cmake -B build -G "Visual Studio 16 2019"   # VS 2019
+cmake --build build -- config Release
 ```
 
-### With MinGW
+The executable will be at `build\Release\StockAnalyzer.exe`
+
+### 4. How to start
+
+**In PowerShell**
+
+From inside the `backend`, run the executable:
 ```
-cmake -B build -G "MinGW Makefiles" -DCMAKE_BUILD_TYPE=Release
-cmake --build build
-```
-The executable will be at `build\StockAnalyzer.exe`.
-
----
-
-## How to start
-
-From inside the `backend` folder, run the executable:
-
-### Visual Studio build
-```
-build\Release\StockAnalyzer.exe
+./build\Release\StockAnalyzer.exe
 ```
 
-### MinGW build
-```
-build\StockAnalyzer.exe
-```
-
-You should see:
+The output should be:
 ```
 [Main] Initialising Yahoo Finance client...
 [Yahoo] Initialised. Crumb obtained.
+[Main] Starting server on port 8081...
 [Server] Listening on http://localhost:8081
 ```
 
-Once it says "Listening", open `frontend\login.html` in your browser (or serve the frontend folder with any static file server).
+Once it says "Listening", open the second PowerShell
 
-> **Note:** The server creates a `backend\data\` folder automatically on first run.
-> This is where `users.bin`, `stocks.bin`, and `watchlist.bin` are stored.
-> Do not delete this folder while the server is running.
+**In 2nd PowerShell**
+
+```
+Start-Process " path_to_project\frontend\login.html"
+```
+
+It will open the Login page in Browser
+
+**How to stop**
+In 1st PowerShell "Ctrl + C", and just close the window in browser
+
+> **Note:** The server creates a backend `backend\data` folder automatically on first run
+> This is where `users.bin` and `stocks.bin` are stored
+> Do not delete this folder while the server is running
 
 ---
 
-## How to stop
-
-Press **Ctrl + C** in the terminal window where the server is running.
-
-The data files are written to disk immediately on every change, so it is safe to stop at any time without losing user accounts or cached stock data.
-
----
-
-## Troubleshooting
+## TroubleShooting
 
 | Problem | Fix |
-|---|---|
 | `cmake` not found | Re-run the CMake installer and choose "Add to PATH", then restart your terminal |
 | `bind() failed on port 8081` | Something else is using port 8081. Find and close it, or change the port number in `src/main.cpp` and rebuild |
 | `[Yahoo] Warning: could not obtain crumb` | No internet connection, or Yahoo Finance is temporarily down. The frontend will fall back to cached stock data from the last successful fetch |
