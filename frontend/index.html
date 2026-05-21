@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>Stock Analyzer - Dashboard</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div style="display: flex; justify-content: space-between; align-items: center; max-width: 1200px; margin: 0 auto;">
+                <div>
+                    <h1>📈 Stock Analyzer</h1>
+                    <p>Real-time stock data from Yahoo Finance</p>
+                </div>
+                <div style="display: flex; gap: 15px; align-items: center;">
+                    <span style="color: var(--text-secondary);">Welcome, <span id="username-display"></span></span>
+                    <button id="logout-btn" style="padding: 10px 20px; border: 2px solid var(--accent-primary); background: transparent; color: var(--accent-primary); border-radius: 8px; cursor: pointer; font-weight: 600;">Logout</button>
+                </div>
+            </div>
+        </header>
+
+        <div class="controls">
+            <button id="refresh-btn" onclick="updateStockDashboard()">🔄 Refresh Data</button>
+            <input type="text" id="search-input" placeholder="Search stock symbol (e.g., AAPL)">
+            <button id="search-btn" onclick="searchStock()">🔍 Search</button>
+        </div>
+
+        <div class="stats">
+            <div class="stat-card">
+                <h3 id="total-stocks">0</h3>
+                <p>Stocks Tracked</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="buy-signals">0</h3>
+                <p>Buy Signals</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="sell-signals">0</h3>
+                <p>Sell Signals</p>
+            </div>
+            <div class="stat-card">
+                <h3 id="last-update">Never</h3>
+                <p>Last Update</p>
+            </div>
+        </div>
+
+        <div id="loading" class="loading" style="display: none;">
+            <p>Loading stock data...</p>
+        </div>
+
+        <div id="stock-list" class="stock-list">
+            <!-- Stock cards will be dynamically added here -->
+        </div>
+
+        <div id="search-result" class="search-result">
+            <!-- Search results will appear here -->
+        </div>
+    </div>
+
+    <script src="js/app.js?v=8"></script>
+    <script src="js/auth.js?v=8"></script>
+    <script>
+        // Check authentication on page load
+        if (!checkAuth()) {
+            window.location.href = 'login.html';
+        }
+        // Display username
+        document.getElementById('username-display').textContent = localStorage.getItem('username') || 'User';
+    </script>
+</body>
+</html>
