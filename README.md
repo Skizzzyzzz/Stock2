@@ -119,13 +119,14 @@ In 1st PowerShell "Ctrl + C", and just close the window in browser
 ## TroubleShooting
 
 | Problem | Fix |
-
+``
 | `cmake` not found | Re-run the CMake installer and choose "Add to PATH", then restart your terminal |
-
+``
 | `bind() failed on port 8081` | Something else is using port 8081. Find and close it, or change the port number in `src/main.cpp` and rebuild |
-
+``
 | `[Yahoo] Warning: could not obtain crumb` | No internet connection, or Yahoo Finance is temporarily down. The frontend will fall back to cached stock data from the last successful fetch |
-
+``
 | Frontend shows "Connection error" | The server is not running. Start it first, then refresh the page |
-
+``
 | Blank stock list after login | The server started but Yahoo Finance returned no data. Wait 30 seconds and click Refresh Data |
+``
